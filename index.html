@@ -1,0 +1,664 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>数数字 1-100</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: "Segoe UI", "PingFang SC", sans-serif;
+      background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+      color: #e8e8e8;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 16px;
+    }
+    h1 {
+      font-size: 1.5rem;
+      margin: 0 0 12px 0;
+      letter-spacing: 0.1em;
+    }
+    .info {
+      display: flex;
+      gap: 24px;
+      margin-bottom: 12px;
+      font-size: 1rem;
+    }
+    .info span { font-weight: 600; }
+    .info .time { color: #4fc3f7; }
+    .info .errors { color: #ff7043; }
+    .info .bookmarks { color: #ffca28; }
+    .current-hint {
+      margin-bottom: 12px;
+      padding: 12px 24px;
+      background: linear-gradient(135deg, #0d47a1 0%, #1565c0 100%);
+      border-radius: 12px;
+      text-align: center;
+      border: 2px solid #42a5f5;
+    }
+    .current-hint .label { font-size: 0.9rem; opacity: 0.9; }
+    .current-hint .num {
+      font-size: 3rem;
+      font-weight: 800;
+      line-height: 1.2;
+      color: #fff;
+      text-shadow: 0 0 20px rgba(66,165,245,0.6);
+    }
+    .game-wrap {
+      background: #0d1117;
+      border-radius: 12px;
+      padding: 12px;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+    }
+    #game-svg {
+      display: block;
+      cursor: pointer;
+      border-radius: 8px;
+    }
+    .cell {
+      transition: fill 0.2s ease, filter 0.2s ease;
+    }
+    .cell:hover { filter: brightness(1.15); }
+    .cell.bookmarked { fill: #e65100 !important; }
+    .reveal-image { pointer-events: none; }
+    .cell-num {
+      font-size: 14px;
+      font-weight: 700;
+      fill: #fff;
+      text-anchor: middle;
+      dominant-baseline: central;
+      pointer-events: none;
+      -webkit-user-select: none;
+      user-select: none;
+    }
+    .msg {
+      margin-top: 12px;
+      min-height: 24px;
+      font-size: 0.95rem;
+      text-align: center;
+    }
+    .msg.error { color: #ff5252; }
+    .msg.success { color: #69f0ae; }
+    .msg.info { color: #40c4ff; }
+    button {
+      margin-top: 12px;
+      padding: 10px 24px;
+      font-size: 1rem;
+      border: none;
+      border-radius: 8px;
+      background: #1976d2;
+      color: #fff;
+      cursor: pointer;
+    }
+    button:hover { background: #1565c0; }
+    button:disabled { opacity: 0.6; cursor: not-allowed; }
+    .leaderboard {
+      margin-top: 20px;
+      width: 100%;
+      max-width: 480px;
+      background: rgba(13,17,23,0.9);
+      border-radius: 12px;
+      padding: 16px;
+      border: 1px solid #37474f;
+    }
+    .leaderboard h3 { margin: 0 0 12px 0; font-size: 1rem; }
+    .leaderboard table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+    .leaderboard th, .leaderboard td { padding: 6px 8px; text-align: left; }
+    .leaderboard th { color: #78909c; }
+    .leaderboard .rank { width: 2.5em; text-align: center; }
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.7);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 100;
+    }
+    .modal-overlay.show { display: flex; }
+    .modal {
+      background: #1a1a2e;
+      border-radius: 16px;
+      padding: 24px;
+      max-width: 360px;
+      width: 90%;
+      border: 1px solid #37474f;
+    }
+    .modal h3 { margin: 0 0 16px 0; }
+    .modal input { width: 100%; padding: 10px; margin-bottom: 16px; border-radius: 8px; border: 1px solid #455a64; background: #263238; color: #fff; font-size: 1rem; }
+    .modal .btns { display: flex; gap: 12px; justify-content: flex-end; }
+  </style>
+</head>
+<body>
+  <h1>数数字 1 → 100</h1>
+  <div class="current-hint">
+    <div class="label">当前应点数字</div>
+    <div class="num" id="current-hint-num">1</div>
+  </div>
+  <div class="info">
+    <span class="time">剩余时间: <span id="timer">20:00</span></span>
+    <span class="errors">错误: <span id="errors">0</span> / 3</span>
+    <span class="bookmarks">记录: <span id="bookmarks-count">0</span> / 5</span>
+  </div>
+  <div class="game-wrap">
+    <svg id="game-svg" width="1000" height="640" xmlns="http://www.w3.org/2000/svg"></svg>
+  </div>
+  <div class="msg" id="msg"></div>
+  <button id="start-btn">开始游戏</button>
+  <div class="leaderboard">
+    <h3>成绩记录（前10名）</h3>
+    <div id="leaderboard-body"></div>
+  </div>
+  <div class="modal-overlay" id="nick-modal">
+    <div class="modal">
+      <h3>恭喜完成！请输入昵称记录成绩</h3>
+      <input type="text" id="nick-input" maxlength="20" placeholder="昵称（最多20字）" />
+      <div class="btns">
+        <button type="button" id="nick-skip">跳过</button>
+        <button type="button" id="nick-submit">保存</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+(function () {
+  const SVG_ID = 'game-svg';
+  const WIDTH = 1000;
+  const HEIGHT = 640;
+  const TOTAL = 100;
+  const REWARD_IMAGE_URL = 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=1000&q=80';
+  const GAME_SECONDS = 20 * 60;
+  const MAX_ERRORS = 3;
+  const MAX_BOOKMARKS = 5;
+  const MIN_AREA_RATIO = 0.28;
+  const MAX_AREA_RATIO = 2.2;
+
+  const svg = document.getElementById(SVG_ID);
+  const timerEl = document.getElementById('timer');
+  const errorsEl = document.getElementById('errors');
+  const bookmarksCountEl = document.getElementById('bookmarks-count');
+  const currentHintNumEl = document.getElementById('current-hint-num');
+  const msgEl = document.getElementById('msg');
+  const startBtn = document.getElementById('start-btn');
+  const nickModal = document.getElementById('nick-modal');
+  const nickInput = document.getElementById('nick-input');
+  const nickSubmit = document.getElementById('nick-submit');
+  const nickSkip = document.getElementById('nick-skip');
+  const leaderboardBody = document.getElementById('leaderboard-body');
+
+  let state = {
+    running: false,
+    nextExpected: 1,
+    errors: 0,
+    bookmarks: new Set(),
+    clicked: new Set(),
+    remainingSeconds: GAME_SECONDS,
+    timerId: null,
+    cells: [],
+    cellByNumber: null,
+    numberByCell: null,
+    won: false
+  };
+
+  function showMsg(text, type = 'info') {
+    msgEl.textContent = text;
+    msgEl.className = 'msg ' + type;
+  }
+
+  function formatTime(sec) {
+    const m = Math.floor(sec / 60);
+    const s = sec % 60;
+    return m + ':' + (s < 10 ? '0' : '') + s;
+  }
+
+  function tick() {
+    if (!state.running) return;
+    state.remainingSeconds--;
+    timerEl.textContent = formatTime(state.remainingSeconds);
+    if (state.remainingSeconds <= 0) {
+      endGame(false);
+      return;
+    }
+    autoClickBookmarked();
+  }
+
+  function startTimer() {
+    if (state.timerId) clearInterval(state.timerId);
+    state.timerId = setInterval(tick, 1000);
+  }
+
+  function stopTimer() {
+    if (state.timerId) {
+      clearInterval(state.timerId);
+      state.timerId = null;
+    }
+  }
+
+  function endGame(won) {
+    state.running = false;
+    state.won = won;
+    stopTimer();
+    if (won) {
+      showMsg('恭喜完成 1–100！', 'success');
+      nickModal.classList.add('show');
+      nickInput.value = '';
+      nickInput.focus();
+    } else {
+      showMsg('游戏结束（超时或错误过多）', 'error');
+      startBtn.disabled = false;
+    }
+  }
+
+  function closeNickModal() {
+    nickModal.classList.remove('show');
+    startBtn.disabled = false;
+  }
+
+  function saveScore(nickname) {
+    const key = 'count100_scores';
+    let list = [];
+    try {
+      const raw = localStorage.getItem(key);
+      if (raw) list = JSON.parse(raw);
+    } catch (_) {}
+    list.push({
+      nickname: nickname || '匿名',
+      remainingSeconds: state.remainingSeconds,
+      errors: state.errors,
+      at: Date.now()
+    });
+    list.sort((a, b) => {
+      if (b.remainingSeconds !== a.remainingSeconds) return b.remainingSeconds - a.remainingSeconds;
+      return a.errors - b.errors;
+    });
+    list = list.slice(0, 10);
+    localStorage.setItem(key, JSON.stringify(list));
+    renderLeaderboard();
+  }
+
+  function renderLeaderboard() {
+    const key = 'count100_scores';
+    let list = [];
+    try {
+      const raw = localStorage.getItem(key);
+      if (raw) list = JSON.parse(raw);
+    } catch (_) {}
+    let html = '<table><thead><tr><th class="rank">#</th><th>昵称</th><th>剩余时间</th><th>错误次数</th></tr></thead><tbody>';
+    list.forEach((r, i) => {
+      html += '<tr><td class="rank">' + (i + 1) + '</td><td>' + escapeHtml(r.nickname) + '</td><td>' + formatTime(r.remainingSeconds) + '</td><td>' + r.errors + '</td></tr>';
+    });
+    if (list.length === 0) html += '<tr><td colspan="4">暂无记录</td></tr>';
+    html += '</tbody></table>';
+    leaderboardBody.innerHTML = html;
+  }
+
+  function escapeHtml(s) {
+    const div = document.createElement('div');
+    div.textContent = s;
+    return div.innerHTML;
+  }
+
+  function triArea(pts) {
+    return 0.5 * Math.abs(
+      (pts[1][0] - pts[0][0]) * (pts[2][1] - pts[0][1]) -
+      (pts[2][0] - pts[0][0]) * (pts[1][1] - pts[0][1])
+    );
+  }
+
+  function triCentroid(pts) {
+    return [
+      (pts[0][0] + pts[1][0] + pts[2][0]) / 3,
+      (pts[0][1] + pts[1][1] + pts[2][1]) / 3
+    ];
+  }
+
+  function triSides(pts) {
+    const a = Math.hypot(pts[1][0] - pts[2][0], pts[1][1] - pts[2][1]);
+    const b = Math.hypot(pts[2][0] - pts[0][0], pts[2][1] - pts[0][1]);
+    const c = Math.hypot(pts[0][0] - pts[1][0], pts[0][1] - pts[1][1]);
+    return [a, b, c];
+  }
+
+  function triAllAnglesLE120(pts) {
+    const [a, b, c] = triSides(pts);
+    if (a < 1e-6 || b < 1e-6 || c < 1e-6) return false;
+    return (a * a <= b * b + c * c + b * c) &&
+           (b * b <= a * a + c * c + a * c) &&
+           (c * c <= a * a + b * b + a * b);
+  }
+
+  function triIncircle(pts) {
+    const [a, b, c] = triSides(pts);
+    const sum = a + b + c;
+    if (sum < 1e-6) return null;
+    const area = triArea(pts);
+    const r = (2 * area) / sum;
+    const cx = (a * pts[0][0] + b * pts[1][0] + c * pts[2][0]) / sum;
+    const cy = (a * pts[0][1] + b * pts[1][1] + c * pts[2][1]) / sum;
+    return { cx: cx, cy: cy, r: r * 0.92 };
+  }
+
+  function polygonArea(pts) {
+    var a = 0;
+    for (var i = 0; i < pts.length; i++) {
+      var j = (i + 1) % pts.length;
+      a += pts[i][0] * pts[j][1] - pts[j][0] * pts[i][1];
+    }
+    return Math.abs(a) / 2;
+  }
+
+  function generatePartition() {
+    var totalArea = WIDTH * HEIGHT;
+    var avgArea = totalArea / TOTAL;
+    var minA = avgArea * MIN_AREA_RATIO;
+    var ratioMin = 0.38;
+    var ratioMax = 0.62;
+    var minSide = 42;
+
+    var cells = [{ type: 'rect', x: 0, y: 0, w: WIDTH, h: HEIGHT }];
+
+    function rectArea(r) { return r.w * r.h; }
+
+    var noProgress = 0;
+    while (cells.length < TOTAL) {
+      var idx = Math.floor(Math.random() * cells.length);
+      var c = cells[idx];
+      var area = rectArea(c);
+      if (area < minA * 2) { noProgress++; if (noProgress > 800) break; continue; }
+      var useMinSide = noProgress < 400 ? minSide : 24;
+      var horiz = Math.random() < 0.5;
+      var fracLo, fracHi;
+      if (horiz) {
+        fracLo = Math.max(ratioMin, useMinSide / c.h, minA / area);
+        fracHi = Math.min(ratioMax, 1 - useMinSide / c.h, 1 - minA / area);
+        if (fracHi <= fracLo) { noProgress++; if (noProgress > 800) break; continue; }
+        var frac = fracLo + Math.random() * (fracHi - fracLo);
+        cells.splice(idx, 1,
+          { type: 'rect', x: c.x, y: c.y, w: c.w, h: c.h * frac },
+          { type: 'rect', x: c.x, y: c.y + c.h * frac, w: c.w, h: c.h * (1 - frac) }
+        );
+        noProgress = 0;
+      } else {
+        fracLo = Math.max(ratioMin, useMinSide / c.w, minA / area);
+        fracHi = Math.min(ratioMax, 1 - useMinSide / c.w, 1 - minA / area);
+        if (fracHi <= fracLo) { noProgress++; if (noProgress > 800) break; continue; }
+        var frac = fracLo + Math.random() * (fracHi - fracLo);
+        cells.splice(idx, 1,
+          { type: 'rect', x: c.x, y: c.y, w: c.w * frac, h: c.h },
+          { type: 'rect', x: c.x + c.w * frac, y: c.y, w: c.w * (1 - frac), h: c.h }
+        );
+        noProgress = 0;
+      }
+    }
+    while (cells.length < TOTAL) {
+      var idx = Math.floor(Math.random() * cells.length);
+      var c = cells[idx];
+      if (rectArea(c) < minA * 2) continue;
+      var frac = ratioMin + Math.random() * (ratioMax - ratioMin);
+      if (Math.random() < 0.5) {
+        if (c.h * frac < minA / c.w || c.h * (1 - frac) < minA / c.w) continue;
+        cells.splice(idx, 1,
+          { type: 'rect', x: c.x, y: c.y, w: c.w, h: c.h * frac },
+          { type: 'rect', x: c.x, y: c.y + c.h * frac, w: c.w, h: c.h * (1 - frac) }
+        );
+      } else {
+        if (c.w * frac < minA / c.h || c.w * (1 - frac) < minA / c.h) continue;
+        cells.splice(idx, 1,
+          { type: 'rect', x: c.x, y: c.y, w: c.w * frac, h: c.h },
+          { type: 'rect', x: c.x + c.w * frac, y: c.y, w: c.w * (1 - frac), h: c.h }
+        );
+      }
+    }
+
+    var shapes = cells.map(function (r) {
+      var pts = [[r.x, r.y], [r.x + r.w, r.y], [r.x + r.w, r.y + r.h], [r.x, r.y + r.h]];
+      var cx = r.x + r.w / 2, cy = r.y + r.h / 2;
+      return { type: 'polygon', points: pts, centroid: [cx, cy], area: r.w * r.h };
+    });
+
+    var indices = shuffle(Array.from({ length: TOTAL }, function (_, i) { return i; }));
+    var numberByCell = {};
+    var cellByNumber = {};
+    indices.forEach(function (cellIdx, i) {
+      numberByCell[cellIdx] = i + 1;
+      cellByNumber[i + 1] = cellIdx;
+    });
+
+    return { shapes: shapes, numberByCell: numberByCell, cellByNumber: cellByNumber };
+  }
+
+  function centroid(pts) {
+    let x = 0, y = 0;
+    for (const p of pts) { x += p[0]; y += p[1]; }
+    return [x / pts.length, y / pts.length];
+  }
+
+  function shuffle(arr) {
+    for (let i = arr.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [arr[i], arr[j]] = [arr[j], arr[i]];
+    }
+    return arr;
+  }
+
+  function pointInPolygon(pts, x, y) {
+    let inside = false;
+    const n = pts.length;
+    for (let i = 0, j = n - 1; i < n; j = i++) {
+      const xi = pts[i][0], yi = pts[i][1];
+      const xj = pts[j][0], yj = pts[j][1];
+      if (((yi > y) !== (yj > y)) && (x < (xj - xi) * (y - yi) / (yj - yi) + xi)) inside = !inside;
+    }
+    return inside;
+  }
+
+  function getCellIndexAt(x, y) {
+    for (var i = 0; i < state.cells.length; i++) {
+      var c = state.cells[i];
+      if (c.points && pointInPolygon(c.points, x, y)) return i;
+    }
+    return -1;
+  }
+
+  function cellPathD(cell) {
+    return cell.points.map(function (p, i) { return (i ? 'L' : 'M') + p[0] + ',' + p[1]; }).join(' ') + 'Z';
+  }
+
+  function updateRevealClip() {
+    var clip = svg.querySelector('#revealClip');
+    if (!clip) return;
+    clip.innerHTML = '';
+    state.cells.forEach(function (cell, idx) {
+      if (!state.clicked.has(state.numberByCell[idx])) return;
+      var path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+      path.setAttribute('d', cellPathD(cell));
+      clip.appendChild(path);
+    });
+  }
+
+  function render() {
+    const defs = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
+    const grad = document.createElementNS('http://www.w3.org/2000/svg', 'linearGradient');
+    grad.setAttribute('id', 'cellGrad');
+    grad.setAttribute('x1', '0%'); grad.setAttribute('y1', '0%'); grad.setAttribute('x2', '100%'); grad.setAttribute('y2', '100%');
+    grad.innerHTML = '<stop offset="0%" stop-color="#37474f"/><stop offset="100%" stop-color="#263238"/>';
+    defs.appendChild(grad);
+    var clipPath = document.createElementNS('http://www.w3.org/2000/svg', 'clipPath');
+    clipPath.setAttribute('id', 'revealClip');
+    defs.appendChild(clipPath);
+    svg.appendChild(defs);
+
+    var shapeLayer = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+    shapeLayer.setAttribute('class', 'cell-shapes');
+    var imageLayer = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+    imageLayer.setAttribute('class', 'reveal-image');
+    imageLayer.setAttribute('clip-path', 'url(#revealClip)');
+    var img = document.createElementNS('http://www.w3.org/2000/svg', 'image');
+    img.setAttribute('href', REWARD_IMAGE_URL);
+    img.onerror = function () { this.parentNode.style.display = 'none'; };
+    img.setAttribute('x', 0);
+    img.setAttribute('y', 0);
+    img.setAttribute('width', WIDTH);
+    img.setAttribute('height', HEIGHT);
+    img.setAttribute('preserveAspectRatio', 'xMidYMid slice');
+    imageLayer.appendChild(img);
+    var textLayer = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+    textLayer.setAttribute('class', 'cell-labels');
+
+    state.cells.forEach(function (cell, idx) {
+      var num = state.numberByCell[idx];
+      var g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+      g.setAttribute('data-cell-index', idx);
+
+      var path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+      path.setAttribute('d', cellPathD(cell));
+      path.setAttribute('fill', 'url(#cellGrad)');
+      path.setAttribute('stroke', 'none');
+      path.classList.add('cell');
+      g.appendChild(path);
+      shapeLayer.appendChild(g);
+
+      var text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+      text.setAttribute('x', cell.centroid[0]);
+      text.setAttribute('y', cell.centroid[1]);
+      text.setAttribute('data-cell-index', idx);
+      text.textContent = num;
+      text.classList.add('cell-num');
+      textLayer.appendChild(text);
+    });
+    svg.appendChild(shapeLayer);
+    svg.appendChild(imageLayer);
+    svg.appendChild(textLayer);
+    updateRevealClip();
+  }
+
+  function updateCellStyles() {
+    state.cells.forEach(function (_, idx) {
+      var g = svg.querySelector('[data-cell-index="' + idx + '"]');
+      if (!g) return;
+      g.querySelectorAll('.cell').forEach(function (el) {
+        el.classList.remove('bookmarked');
+        if (state.bookmarks.has(state.numberByCell[idx])) el.classList.add('bookmarked');
+      });
+    });
+    updateRevealClip();
+  }
+
+  function setNextHint(n) {
+    currentHintNumEl.textContent = n > TOTAL ? '完成' : n;
+  }
+
+  function autoClickBookmarked() {
+    if (!state.running || state.bookmarks.size === 0) return;
+    if (state.bookmarks.has(state.nextExpected)) {
+      state.clicked.add(state.nextExpected);
+      state.bookmarks.delete(state.nextExpected);
+      state.nextExpected++;
+      bookmarksCountEl.textContent = state.bookmarks.size;
+      setNextHint(state.nextExpected);
+      updateCellStyles();
+      if (state.nextExpected > TOTAL) endGame(true);
+    }
+  }
+
+  function handleLeftClick(evt) {
+    if (!state.running) return;
+    const rect = svg.getBoundingClientRect();
+    const x = evt.clientX - rect.left;
+    const y = evt.clientY - rect.top;
+    const scaleX = WIDTH / rect.width;
+    const scaleY = HEIGHT / rect.height;
+    const idx = getCellIndexAt(x * scaleX, y * scaleY);
+    if (idx < 0) return;
+    const num = state.numberByCell[idx];
+    if (num !== state.nextExpected) {
+      state.errors++;
+      errorsEl.textContent = state.errors;
+      showMsg('请按顺序点击，当前应点：' + state.nextExpected, 'error');
+      if (state.errors > MAX_ERRORS) endGame(false);
+      return;
+    }
+    state.clicked.add(num);
+    state.nextExpected++;
+    setNextHint(state.nextExpected);
+    showMsg('', 'info');
+    updateCellStyles();
+    autoClickBookmarked();
+    if (state.nextExpected > TOTAL) endGame(true);
+  }
+
+  function handleRightClick(evt) {
+    evt.preventDefault();
+    if (!state.running) return;
+    const rect = svg.getBoundingClientRect();
+    const x = evt.clientX - rect.left;
+    const y = evt.clientY - rect.top;
+    const scaleX = WIDTH / rect.width;
+    const scaleY = HEIGHT / rect.height;
+    const idx = getCellIndexAt(x * scaleX, y * scaleY);
+    if (idx < 0) return;
+    const num = state.numberByCell[idx];
+    if (state.clicked.has(num)) return;
+    if (state.bookmarks.has(num)) {
+      state.bookmarks.delete(num);
+    } else if (state.bookmarks.size < MAX_BOOKMARKS) {
+      state.bookmarks.add(num);
+    } else {
+      showMsg('记录已达上限（5 个）', 'error');
+      return;
+    }
+    bookmarksCountEl.textContent = state.bookmarks.size;
+    updateCellStyles();
+  }
+
+  function startGame() {
+    state.running = true;
+    state.nextExpected = 1;
+    state.errors = 0;
+    state.bookmarks = new Set();
+    state.clicked = new Set();
+    state.remainingSeconds = GAME_SECONDS;
+    state.timerId = null;
+    state.cells = [];
+    state.cellByNumber = null;
+    state.numberByCell = null;
+    state.won = false;
+
+    const partition = generatePartition();
+    state.cells = partition.shapes;
+    state.numberByCell = partition.numberByCell;
+    state.cellByNumber = partition.cellByNumber;
+
+    svg.innerHTML = '';
+    render();
+
+    timerEl.textContent = formatTime(state.remainingSeconds);
+    errorsEl.textContent = '0';
+    bookmarksCountEl.textContent = '0';
+    setNextHint(1);
+    showMsg('左键按 1→100 顺序点击，右键记录（到顺序时自动点击）', 'info');
+    startBtn.disabled = true;
+    startTimer();
+  }
+
+  nickSubmit.addEventListener('click', () => {
+    saveScore(nickInput.value.trim());
+    closeNickModal();
+  });
+  nickSkip.addEventListener('click', () => {
+    saveScore('匿名');
+    closeNickModal();
+  });
+
+  svg.addEventListener('click', handleLeftClick);
+  svg.addEventListener('contextmenu', handleRightClick);
+  startBtn.addEventListener('click', startGame);
+  renderLeaderboard();
+})();
+  </script>
+</body>
+</html>
