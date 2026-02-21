@@ -2,6 +2,8 @@
 
 在 20 分钟内按顺序从 1 点到 100。格子为长方形递归划分的 100 份，正确点击会逐步揭开一张奖励图片。
 
+**在线玩（需先完成下方「部署到 GitHub」）：** [https://zhanghongqian2026.github.io/mach/](https://zhanghongqian2026.github.io/mach/)
+
 ## 规则
 
 - **左键**：按 1→100 顺序点击；点错计错误，错误超过 3 次游戏结束。
