@@ -2,7 +2,7 @@
 <html lang="zh-CN">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <title>数数字 1-100</title>
   <style>
     * { box-sizing: border-box; }
@@ -13,6 +13,7 @@
       background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
       color: #e8e8e8;
       padding: 16px;
+      overflow-x: hidden;
     }
     .main-layout {
       display: flex;
@@ -29,6 +30,8 @@
       align-items: center;
       flex: 1 1 auto;
       min-width: 0;
+      width: 100%;
+      max-width: 100%;
     }
     .rules-panel {
       width: 280px;
@@ -61,6 +64,17 @@
     .rules-panel .rule-title { color: #e8e8e8; font-weight: 600; }
     @media (max-width: 1100px) {
       .rules-panel { width: 100%; max-width: 480px; margin: 0 auto; align-self: auto; }
+    }
+    @media (max-width: 600px) {
+      body { padding: 8px; }
+      .main-layout { gap: 12px; }
+      h1 { font-size: 1.2rem; margin-bottom: 8px; }
+      .current-hint { margin-bottom: 8px; padding: 8px 16px; }
+      .current-hint .num { font-size: 2rem; }
+      .info { gap: 12px; margin-bottom: 8px; font-size: 0.85rem; }
+      .game-wrap { padding: 8px; }
+      .msg { font-size: 0.85rem; min-height: 20px; }
+      .leaderboard { margin-top: 12px; padding: 12px; font-size: 0.85rem; }
     }
     h1 {
       font-size: 1.5rem;
@@ -98,11 +112,16 @@
       border-radius: 12px;
       padding: 12px;
       box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+      width: 100%;
+      max-width: 1000px;
     }
     #game-svg {
       display: block;
       cursor: pointer;
       border-radius: 8px;
+      width: 100%;
+      height: auto;
+      max-width: 1000px;
     }
     .cell {
       transition: fill 0.2s ease, filter 0.2s ease;
@@ -192,7 +211,7 @@
         <span class="bookmarks">记录: <span id="bookmarks-count">0</span> / 5</span>
       </div>
       <div class="game-wrap">
-        <svg id="game-svg" width="1000" height="640" xmlns="http://www.w3.org/2000/svg"></svg>
+        <svg id="game-svg" width="1000" height="640" viewBox="0 0 1000 640" preserveAspectRatio="xMidYMid meet" xmlns="http://www.w3.org/2000/svg"></svg>
       </div>
       <div class="msg" id="msg"></div>
       <button id="start-btn">开始游戏</button>
