@@ -12,10 +12,55 @@
       font-family: "Segoe UI", "PingFang SC", sans-serif;
       background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
       color: #e8e8e8;
+      padding: 16px;
+    }
+    .main-layout {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 24px;
+      max-width: 1400px;
+      margin: 0 auto;
+      align-items: stretch;
+      justify-content: center;
+    }
+    .game-area {
       display: flex;
       flex-direction: column;
       align-items: center;
-      padding: 16px;
+      flex: 1 1 auto;
+      min-width: 0;
+    }
+    .rules-panel {
+      width: 280px;
+      flex-shrink: 0;
+      align-self: stretch;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      background: rgba(13, 17, 23, 0.95);
+      border-radius: 12px;
+      padding: 20px;
+      border: 1px solid #37474f;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+    }
+    .rules-panel h2 {
+      margin: 0 0 16px 0;
+      font-size: 1.1rem;
+      color: #4fc3f7;
+      font-weight: 600;
+      letter-spacing: 0.05em;
+    }
+    .rules-panel ul {
+      margin: 0;
+      padding-left: 1.2em;
+      font-size: 0.9rem;
+      line-height: 1.7;
+      color: #b0bec5;
+    }
+    .rules-panel li { margin-bottom: 8px; }
+    .rules-panel .rule-title { color: #e8e8e8; font-weight: 600; }
+    @media (max-width: 1100px) {
+      .rules-panel { width: 100%; max-width: 480px; margin: 0 auto; align-self: auto; }
     }
     h1 {
       font-size: 1.5rem;
@@ -134,24 +179,37 @@
   </style>
 </head>
 <body>
-  <h1>数数字 1 → 100</h1>
-  <div class="current-hint">
-    <div class="label">当前应点数字</div>
-    <div class="num" id="current-hint-num">1</div>
-  </div>
-  <div class="info">
-    <span class="time">剩余时间: <span id="timer">20:00</span></span>
-    <span class="errors">错误: <span id="errors">0</span> / 3</span>
-    <span class="bookmarks">记录: <span id="bookmarks-count">0</span> / 5</span>
-  </div>
-  <div class="game-wrap">
-    <svg id="game-svg" width="1000" height="640" xmlns="http://www.w3.org/2000/svg"></svg>
-  </div>
-  <div class="msg" id="msg"></div>
-  <button id="start-btn">开始游戏</button>
-  <div class="leaderboard">
-    <h3>成绩记录（前10名）</h3>
-    <div id="leaderboard-body"></div>
+  <div class="main-layout">
+    <div class="game-area">
+      <h1>数数字 1 → 100</h1>
+      <div class="current-hint">
+        <div class="label">当前应点数字</div>
+        <div class="num" id="current-hint-num">1</div>
+      </div>
+      <div class="info">
+        <span class="time">剩余时间: <span id="timer">20:00</span></span>
+        <span class="errors">错误: <span id="errors">0</span> / 3</span>
+        <span class="bookmarks">记录: <span id="bookmarks-count">0</span> / 5</span>
+      </div>
+      <div class="game-wrap">
+        <svg id="game-svg" width="1000" height="640" xmlns="http://www.w3.org/2000/svg"></svg>
+      </div>
+      <div class="msg" id="msg"></div>
+      <button id="start-btn">开始游戏</button>
+      <div class="leaderboard">
+        <h3>成绩记录（前10名）</h3>
+        <div id="leaderboard-body"></div>
+      </div>
+    </div>
+    <aside class="rules-panel">
+      <h2>玩法说明</h2>
+      <ul>
+        <li><span class="rule-title">目标</span><br />在 20 分钟内按顺序从 1 点到 100，正确点击会逐步揭开奖励图片。</li>
+        <li><span class="rule-title">左键</span><br />按 1→100 顺序点击格子；点错计 1 次错误，错误超过 3 次游戏结束。</li>
+        <li><span class="rule-title">右键</span><br />记录当前格子（最多 5 个），轮到该数字时自动视为已点击。</li>
+        <li><span class="rule-title">颜色</span><br />已记录 = 橙色；已点击的格子会显示奖励图片对应区域。</li>
+      </ul>
+    </aside>
   </div>
   <div class="modal-overlay" id="nick-modal">
     <div class="modal">
